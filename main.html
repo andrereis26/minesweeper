@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Bootstrap Example</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // by default gen a 4x4 game with 4 mines
+        var currentNMines = 4
+        var mines = new Array(currentNMines);
+        var currentXSize = 4;
+        var currentYSize = 4;
+        var flags = currentNMines;
+        var correctFlags = 0;
+
+        // timer
+        var started = false;
+        var timex;
+        var hours = 0;
+        var mins = 0;
+        var seconds = 0;
+
+        // gen fields -> xSize of game, ySize of game, n of mines
+        function generateGame(xSize, ySize, n) {
+
+            // clear console for g0d's sake
+            console.clear();
+
+            currentXSize = xSize;
+            currentYSize = ySize;
+            currentNMines = n;
+            flags = n;
+
+            // reset timer
+            resetTimer();
+
+            // shows flags left
+            $("#flags").text(flags)
+
+            // resets fields
+            $("#game").empty();
+
+            for (let i = 0; i < xSize; i++) {
+                $("#game").append(`
+                    <div class="row justify-content-center align-items-center" id="row-${i}">`);
+
+                for (let j = 0; j < ySize; j++) {
+                    $("#row-" + i).append(` <div class="" id="row-${i}-col-${j}">
+                        <button type="button" class="field" id="${i},${j}" flag="0">&nbsp &nbsp</button>
+                    </div>`);
+                }
+
+                $("#game").append(`</div>`);
+            }
+
+            // randomize mines -> n mines = size unidimentional
+            mines = new Array(xSize);
+
+            // create 2d array
+            for (let i = 0; i < xSize; i++) {
+                mines[i] = [ySize];
+            }
+
+            // value 1 means that there's a mine on that field
+            for (let i = 0; i < n; i++) {
+                let x = Math.floor((Math.random() * xSize));
+                let y = Math.floor((Math.random() * ySize));
+
+                // while it gens an already existent mine, creates a new one
+                while (mines[x][y] == 1) {
+                    x = Math.floor((Math.random() * xSize))
+                    y = Math.floor((Math.random() * ySize))
+                }
+
+                mines[x][y] = 1;
+                console.log("mine " + x + "," + y + " was generated!");
+            }
+
+            // bind fields
+            bindFieldsEvents();
+
+        }
+
+        // bind the fields when they are generated
+        function bindFieldsEvents() {
+            // click fields events
+            $(".field").click(function () {
+
+                // start timer
+                if (started == false) {
+                    started = true;
+                    startTimer();
+                }
+
+                //get id
+                let buttonId = this.id.split(',');
+
+                // check if field is a mine
+                if (checkIfMine(buttonId[0], buttonId[1])) {
+
+                    // mine
+                    console.log(`booom, mine ${buttonId[0]},${buttonId[1]} was blown`);
+
+                    // stop and reset timer
+                    resetTimer();
+
+                    // show all mines
+                    showAllMine();
+
+                } else {
+
+                    // not mine
+                    console.log(`that was close, field ${buttonId[0]},${buttonId[1]} is not a mine!`);
+
+                    // disable button and paint it green
+                    $(this).prop('disabled', true);
+
+                    // count neighbour mines of the current field (above, below, right, left and diagonals)
+                    $(this).text(countNeighbourMines(buttonId[0], buttonId[1]));
+                    $(this).css('font-weight', 'bold');
+                }
+            });
+
+            // right click event (flags)
+            $('.field').mousedown(function (event) {
+                switch (event.which) {
+                    case 1:
+                        // left click 
+                        break;
+                    case 2:
+                        // middle click 
+                        break;
+                    case 3:
+                        // right click
+
+                        rightClickEvent(this);
+
+                        break;
+                    default:
+                    // ???
+                }
+            });
+        }
+
+        // count neighbour mines of a given field 
+        //(above, below, right, left and diagonals) and return the counter
+        function countNeighbourMines(x, y) {
+
+            counter = 0;
+
+            // check above
+            x--;
+            if (!checkIfValidPosition(x, y)) if (mines[x][y] == 1) counter++;
+            x++;
+
+            // check below
+            x++
+            if (!checkIfValidPosition(x, y)) if (mines[x][y] == 1) counter++;
+            x--;
+
+            // check right
+            y++
+            if (!checkIfValidPosition(x, y)) if (mines[x][y] == 1) counter++;
+            y--;
+
+            //check left
+            y--
+            if (!checkIfValidPosition(x, y)) if (mines[x][y] == 1) counter++;
+            y++;
+
+            // check up right diagonal
+            x--;
+            y++;
+            if (!checkIfValidPosition(x, y)) if (mines[x][y] == 1) counter++;
+            x++;
+            y--;
+
+            // check up left diagonal
+            x--;
+            y--;
+            if (!checkIfValidPosition(x, y)) if (mines[x][y] == 1) counter++;
+            x++;
+            y++;
+
+            // check below right diagonal
+            x++;
+            y++;
+            if (!checkIfValidPosition(x, y)) if (mines[x][y] == 1) counter++;
+            x--;
+            y--;
+
+            // check below left diagonal
+            x++;
+            y--;
+            if (!checkIfValidPosition(x, y)) if (mines[x][y] == 1) counter++;
+            x--;
+            y++;
+
+
+
+            return counter;
+        }
+
+
+        // check if is a mine
+        function checkIfMine(x, y) {
+            if (mines[x][y] == 1) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        // check if position is out of bounds
+        function checkIfValidPosition(x, y) {
+
+            // checks if x or y if bigger than the array's size
+            if ((x > currentXSize - 1 || y > currentYSize - 1)
+                || (x < 0 || y < 0)) {
+                return true
+            }
+
+            return false;
+        }
+
+        // shows all mines in the game
+        function showAllMine() {
+
+            // disable all fields
+            $(".field").prop('disabled', true);
+
+            // show mines
+            $(".field").each(function () {
+                //get id
+                let buttonId = this.id.split(',');
+                if (checkIfMine(buttonId[0], buttonId[1])) {
+                    $(this).css({
+                        'background-image': "url('https://cdn.discordapp.com/attachments/873645327171870730/962100483869257789/mine.png')",
+                        'background-size': '100%',
+                        'background-repeat': 'no-repeat',
+                        'background-color': 'red'
+                    });
+                }
+
+            })
+
+        }
+
+        // start timer
+        function startTimer() {
+            timex = setTimeout(function () {
+                seconds++;
+                if (seconds > 59) {
+                    seconds = 0; mins++;
+                    if (mins > 59) {
+                        mins = 0; hours++;
+                        if (hours < 10) { $("#hours").text('0' + hours + ':') } else $("#hours").text(hours + ':');
+                    }
+
+                    if (mins < 10) {
+                        $("#mins").text('0' + mins + ':');
+                    }
+                    else $("#mins").text(mins + ':');
+                }
+                if (seconds < 10) {
+                    $("#seconds").text('0' + seconds);
+                } else {
+                    $("#seconds").text(seconds);
+                }
+
+
+                startTimer();
+            }, 1000);
+        }
+
+        // stop and reset timer
+        function resetTimer() {
+            started = false;
+            clearTimeout(timex);
+            hours = 0; mins = 0; seconds = 0;
+            $('#hours', '#mins').html('00:');
+            $('#seconds').html('00');
+        }
+
+        // rick click event (flags)
+        function rightClickEvent(field) {
+            // check if it has a flag already. 0 means no, 1 means yes
+            if ($(field).attr("flag") == 0) {
+
+                // update field attr flag if there's still flags available
+                if (flags > 0) {
+
+                    $(field).css({
+                        'background-image': "url('https://cdn.discordapp.com/attachments/873645327171870730/962100476587966534/flag.png')",
+                        'background-size': '100%',
+                        'background-repeat': 'no-repeat'
+                    });
+
+                    $(field).attr("flag", "1");
+
+                    // update flags
+                    flags--;
+
+                    // check if flag placed correctly
+                    let buttonId = field.id.split(',');
+                    if (mines[buttonId[0]][buttonId[1]] == 1) {
+                        correctFlags++;
+                    }
+
+                    // check if won the game
+                    if (correctFlags == currentNMines) {
+                        // disable all fields
+                        $(".field").prop('disabled', true);
+                        // show message
+                        $("#ganhou").text("Yeeiiii, ganhaste!")
+                        // reset timer
+                        resetTimer();
+                    }
+                }
+
+            } else {
+                $(field).css({
+                    'background-image': "none"
+                });
+
+                // update field attr flag
+
+                $(field).attr("flag", "0")
+
+                // update flags if available
+
+                flags++;
+
+            }
+
+            // update flags text
+            $("#flags").text(flags)
+        }
+        // load code
+        $(document).ready(function () {
+
+            // disables right click menu
+            $(document).bind("contextmenu", function (e) {
+                return false;
+            });
+
+            // generate game on ready by default 8x8 game 
+            generateGame(8, 8, 10);
+
+            // settings events
+            $('#ezy, #beginner, #intermediate, #expert, #g0d, #reset').click(function () {
+
+                switch (this.id) {
+                    case "ezy":
+                        generateGame(4, 4, 4);
+                        break;
+
+                    case "beginner":
+                        generateGame(8, 8, 10);
+                        break;
+
+                    case "intermediate":
+                        generateGame(16, 16, 40);
+
+                        break;
+                    case "expert":
+                        generateGame(30, 16, 99);
+                        break;
+
+                    case "g0d":
+                        generateGame(64, 32, 224);
+                        break;
+
+                    case "reset":
+                        generateGame(currentXSize, currentYSize, currentNMines);
+                        break;
+
+                    default:
+                        generateGame(4);
+                        break;
+                }
+            });
+
+        });
+    </script>
+</head>
+
+<body>
+
+    <div class="jumbotron text-center">
+        <h1>My First Bootstrap Page</h1>
+        <p>Resize this responsive page to see the effect!</p>
+
+    </div>
+
+    <div class="container justify-content-center align-items-center" id="settings">
+        <div class="row">
+            <div class="col-sm-8">
+                <button type="button" id="ezy">Super ezy</button>
+                <button type="button" id="beginner">Beginner</button>
+                <button type="button" id="intermediate">Intermediate</button>
+                <button type="button" id="expert">Expert</button>
+                <button type="button" id="g0d">G0d</button>
+            </div>
+            <div class="col-sm-4">
+                <button type="button" id="reset">RESET</button>
+            </div>
+        </div>
+    </div>
+
+    <br>
+    <br>
+    <br>
+
+    <div class="container justify-content-center align-items-center" style="text-align: center" id="timer">
+        <h4><span id="hours">00:</span>
+            <span id="mins">00:</span>
+            <span id="seconds">00</span>
+        </h4>
+    </div>
+
+    <div class="container justify-content-center align-items-center" style="text-align: center" id="timer">
+        Flags: <span id="flags"></span>
+        <br>
+        <strong><span id="ganhou"></span></strong>
+    </div>
+
+    <br>
+
+    <div class="container justify-content-center align-items-center" id="game">
+        <!-- <div class="row">
+            <div class="col-sm-4">
+                <h3>Column 1</h3>
+                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit...</p>
+                <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris...</p>
+            </div>
+            <div class="col-sm-4">
+                <h3>Column 2</h3>
+                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit...</p>
+                <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris...</p>
+            </div>
+            <div class="col-sm-4">
+                <h3>Column 3</h3>
+                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit...</p>
+                <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris...</p>
+            </div>
+        </div> -->
+
+
+    </div>
+
+</body>
+
+
+</html>
