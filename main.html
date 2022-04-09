@@ -35,12 +35,17 @@
             currentYSize = ySize;
             currentNMines = n;
             flags = n;
+            correctFlags = 0;
 
             // reset timer
             resetTimer();
 
             // shows flags left
             $("#flags").text(flags)
+
+            // reset win message
+            // show message
+            $("#ganhou").text("")
 
             // resets fields
             $("#game").empty();
@@ -289,6 +294,10 @@
 
         // rick click event (flags)
         function rightClickEvent(field) {
+
+            // get field id
+            let buttonId = field.id.split(',');
+
             // check if it has a flag already. 0 means no, 1 means yes
             if ($(field).attr("flag") == 0) {
 
@@ -307,7 +316,6 @@
                     flags--;
 
                     // check if flag placed correctly
-                    let buttonId = field.id.split(',');
                     if (mines[buttonId[0]][buttonId[1]] == 1) {
                         correctFlags++;
                     }
@@ -328,12 +336,15 @@
                     'background-image': "none"
                 });
 
-                // update field attr flag
+                // check if flag was placed correctly
+                if (mines[buttonId[0]][buttonId[1]] == 1) {
+                    correctFlags--;
+                }
 
+                // update field attr flag
                 $(field).attr("flag", "0")
 
                 // update flags if available
-
                 flags++;
 
             }
