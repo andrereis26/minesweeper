@@ -2,20 +2,25 @@
 <html lang="en">
 
 <head>
-    <title>Bootstrap Example</title>
+    <title>Minesweeper</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/x-icon"
+        href="https://cdn.discordapp.com/attachments/873645327171870730/962100483869257789/mine.png">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.bundle.min.js"></script>
+
     <script>
-        // by default gen a 4x4 game with 4 mines
-        var currentNMines = 4
+        // by default gen a 8x8 game with 10 mines
+        var currentNMines = 10
         var mines = new Array(currentNMines);
-        var currentXSize = 4;
-        var currentYSize = 4;
+        var currentXSize = 8;
+        var currentYSize = 8;
         var flags = currentNMines;
+        var currentMode = "beginner";
         var correctFlags = 0;
 
         // timer
@@ -25,27 +30,53 @@
         var mins = 0;
         var seconds = 0;
 
-        // gen fields -> xSize of game, ySize of game, n of mines
-        function generateGame(xSize, ySize, n) {
+        // leaderboard -> 5 game modes
+        var leaderboard = new Map();
+
+        // if there's no leaderboard on local storage, creates a new one
+        if (!localStorage.getItem("minesweeper_leaderboard")) {
+            leaderboard.set("ezy", new Array());
+            leaderboard.set("beginner", new Array());
+            leaderboard.set("intermediate", new Array());
+            leaderboard.set("expert", new Array());
+            leaderboard.set("g0d", new Array());
+        } else {
+            leaderboard = new Map(JSON.parse(localStorage.minesweeper_leaderboard));
+        }
+
+        // gen fields -> xSize of game, ySize of game, n of mines and mode
+        function generateGame(xSize, ySize, n, mode) {
 
             // clear console for g0d's sake
             console.clear();
 
+            // current values
             currentXSize = xSize;
             currentYSize = ySize;
             currentNMines = n;
+            currentMode = mode;
             flags = n;
             correctFlags = 0;
 
-            // reset timer
+            // stop and reset timer
+            stopTimer();
             resetTimer();
 
-            // shows flags left
+            // reset flags left
             $("#flags").text(flags)
 
-            // reset win message
-            // show message
-            $("#ganhou").text("")
+            // reset player input
+            $('#nomePlayer').val("");
+            $('#nomePlayer').css("border", "");
+            $('#nomePlayer').attr("placeholder", "insira o seu nome..")
+
+            //leaderboard mode text
+            $('#leaderboardMode').text(currentMode);
+
+            // hide fields and activate button again
+            $("#ganhou").hide();
+            $("#registarScore").hide();
+            $("#registarScore").prop('disabled', false);
 
             // resets fields
             $("#game").empty();
@@ -63,7 +94,7 @@
                 $("#game").append(`</div>`);
             }
 
-            // randomize mines -> n mines = size unidimentional
+            // randomize mines
             mines = new Array(xSize);
 
             // create 2d array
@@ -111,18 +142,21 @@
                     // mine
                     console.log(`booom, mine ${buttonId[0]},${buttonId[1]} was blown`);
 
-                    // stop and reset timer
-                    resetTimer();
+                    // stop timer
+                    stopTimer();
 
                     // show all mines
                     showAllMine();
 
                 } else {
 
+                    // check if the field as a flag. If it has, removes it
+                    if ($(this).attr("flag") == 1) $(this).css({ 'background-image': "none" });
+
                     // not mine
                     console.log(`that was close, field ${buttonId[0]},${buttonId[1]} is not a mine!`);
 
-                    // disable button and paint it green
+                    // disable button
                     $(this).prop('disabled', true);
 
                     // count neighbour mines of the current field (above, below, right, left and diagonals)
@@ -211,7 +245,6 @@
             return counter;
         }
 
-
         // check if is a mine
         function checkIfMine(x, y) {
             if (mines[x][y] == 1) {
@@ -283,10 +316,14 @@
             }, 1000);
         }
 
-        // stop and reset timer
-        function resetTimer() {
+        // stop timer
+        function stopTimer() {
             started = false;
             clearTimeout(timex);
+        }
+
+        // stop and reset timer
+        function resetTimer() {
             hours = 0; mins = 0; seconds = 0;
             $('#hours', '#mins').html('00:');
             $('#seconds').html('00');
@@ -325,9 +362,10 @@
                         // disable all fields
                         $(".field").prop('disabled', true);
                         // show message
-                        $("#ganhou").text("Yeeiiii, ganhaste!")
-                        // reset timer
-                        resetTimer();
+                        $("#ganhou").show();
+                        $("#registarScore").show();
+                        // stop timer
+                        stopTimer();
                     }
                 }
 
@@ -352,6 +390,51 @@
             // update flags text
             $("#flags").text(flags)
         }
+
+        // leaderboard handler
+        function leaderboardHandler(nomePlayer) {
+
+            // get scores from current game mode
+            let arr = leaderboard.get(currentMode);
+
+            // convert time that is a string to date format
+            let newH = (hours).toLocaleString(undefined, { minimumIntegerDigits: 2 })
+            let newM = (mins).toLocaleString(undefined, { minimumIntegerDigits: 2 })
+            let newS = (seconds).toLocaleString(undefined, { minimumIntegerDigits: 2 })
+
+            // add current score
+            arr.push({ player: nomePlayer, tempo: newH + ":" + newM + ":" + newS, mines: currentNMines });
+
+            // sort
+            arr.sort((a, b) => (a.tempo > b.tempo) ? 1 : ((b.tempo > a.tempo) ? -1 : 0))
+
+            // store leaderboard in localStorage
+            localStorage.minesweeper_leaderboard = JSON.stringify(Array.from(leaderboard.entries()));
+        }
+
+        // generate leaderboard
+        function generateLeaderboard() {
+
+            // cleans table
+            $("#leaderboardBody").empty();
+
+            // get scores for current game mode
+            let scores = leaderboard.get(currentMode);
+
+            // if there's scores, prints them
+            if (scores) {
+                for (let i = 0; i < scores.length; i++) {
+                    $("#leaderboardBody").append(`<tr>
+                        <th scope="row">${i + 1}</th>
+                        <td>${scores[i].player}</td>
+                        <td>${scores[i].tempo}</td>
+                        <td>${scores[i].mines}</td>
+                     </tr>`);
+                }
+            }
+
+        }
+
         // load code
         $(document).ready(function () {
 
@@ -360,66 +443,109 @@
                 return false;
             });
 
-            // generate game on ready by default 8x8 game 
-            generateGame(8, 8, 10);
+            // generate game and leaderboard on ready by default 8x8 game 
+            generateGame(8, 8, 10, "beginner");
+            generateLeaderboard();
 
             // settings events
             $('#ezy, #beginner, #intermediate, #expert, #g0d, #reset').click(function () {
 
                 switch (this.id) {
                     case "ezy":
-                        generateGame(4, 4, 4);
+                        generateGame(4, 4, 4, "ezy");
                         break;
 
                     case "beginner":
-                        generateGame(8, 8, 10);
+                        generateGame(8, 8, 10, "beginner");
                         break;
 
                     case "intermediate":
-                        generateGame(16, 16, 40);
+                        generateGame(16, 16, 40, "intermediate");
 
                         break;
                     case "expert":
-                        generateGame(30, 16, 99);
+                        generateGame(30, 16, 99, "expert");
                         break;
 
                     case "g0d":
-                        generateGame(64, 32, 224);
+                        generateGame(64, 32, 224, "g0d");
                         break;
 
                     case "reset":
-                        generateGame(currentXSize, currentYSize, currentNMines);
+                        generateGame(currentXSize, currentYSize, currentNMines, currentMode);
                         break;
 
                     default:
                         generateGame(4);
                         break;
                 }
+
+                // after changing game mode, regenerate a new leaderboard ffor the game mode selected
+                generateLeaderboard();
+            });
+
+            // registar score
+            $('#buttonRegistarScore').click(function () {
+
+                let nome = $('#nomePlayer').val();
+
+                // reset
+                $('#nomePlayer').val("");
+                $("#ganhou").hide();
+                $("#registarScore").hide();
+
+                if (!nome) {
+                    $('#nomePlayer').css("border", "1px solid red");
+                    $('#nomePlayer').attr("placeholder", "insira o seu nome!")
+                } else {
+                    $('#nomePlayer').css("border", "");
+                    $('#nomePlayer').attr("placeholder", "insira o seu nome..");
+                    $('#buttonRegistarScore').prop("disable", true)
+                    leaderboardHandler(nome);
+                    generateLeaderboard();
+                }
+
+            });
+
+            // Delete leaderboard for the current mode
+            $('#deleteLeaderboard').click(function () {
+
+                leaderboard.set(currentMode, new Array());
+
+                // store the updated leaderboard
+                localStorage.minesweeper_leaderboard = JSON.stringify(Array.from(leaderboard.entries()));
+
+                // regenerate leaderboard
+                generateLeaderboard();
             });
 
         });
+
+
     </script>
 </head>
 
 <body>
 
     <div class="jumbotron text-center">
-        <h1>My First Bootstrap Page</h1>
-        <p>Resize this responsive page to see the effect!</p>
-
+        <h1>Simple Minesweeper game</h1>
+        <p>Made with HTML, Bootstrap 4, JavaScript and jQuery all in one</p>
+        <p><small>Made by André L Reis aka L of The <span style="color: red;">Red</span> Sand</small></p>
+        <p><small><small>There's a lack of css because I didn't want to lose time on that</small></small></p>
     </div>
 
     <div class="container justify-content-center align-items-center" id="settings">
         <div class="row">
-            <div class="col-sm-8">
+            <div class="col-sm-10">
                 <button type="button" id="ezy">Super ezy</button>
                 <button type="button" id="beginner">Beginner</button>
                 <button type="button" id="intermediate">Intermediate</button>
                 <button type="button" id="expert">Expert</button>
                 <button type="button" id="g0d">G0d</button>
+                <button type="button" id="reset" style="border-color: red;">RESET</button>
             </div>
-            <div class="col-sm-4">
-                <button type="button" id="reset">RESET</button>
+            <div class="col-sm-2">
+                <a href="#leaderboardContainer"> <button type="button" id="reset">Leaderboard</button></a>
             </div>
         </div>
     </div>
@@ -438,32 +564,53 @@
     <div class="container justify-content-center align-items-center" style="text-align: center" id="timer">
         Flags: <span id="flags"></span>
         <br>
-        <strong><span id="ganhou"></span></strong>
+        <strong><span id="ganhou">Yeeiiii, ganhaste!</span></strong>
     </div>
+
+    <br>
+    <div class="container justify-content-center align-items-center" style="text-align: center" id="registarScore">
+        <form id="formRegistar">
+            <input type="text" id="nomePlayer" name="nomePlayer" placeholder="insira o seu nome.." required>
+            <button type="button" id="buttonRegistarScore">Registar</button>
+        </form>
+    </div>
+
 
     <br>
 
     <div class="container justify-content-center align-items-center" id="game">
-        <!-- <div class="row">
-            <div class="col-sm-4">
-                <h3>Column 1</h3>
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit...</p>
-                <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris...</p>
-            </div>
-            <div class="col-sm-4">
-                <h3>Column 2</h3>
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit...</p>
-                <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris...</p>
-            </div>
-            <div class="col-sm-4">
-                <h3>Column 3</h3>
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit...</p>
-                <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris...</p>
-            </div>
-        </div> -->
-
-
+        <!-- game gonna spawn here -->
     </div>
+
+    <br>
+    <br>
+    <br>
+
+    <div class="container" id="leaderboardContainer">
+
+        <h3 style="text-align: center; cursor: help;" data-toggle="tooltip" data-placement="bottom"
+            title="a leaderboard altera consoante a dificuldade do jogo">Leaderboard -
+            <span id="leaderboardMode"></span> <button type="button" class="btn btn-danger" id="deleteLeaderboard"><i
+                    class="fa fa-trash"></i></button>
+        </h3>
+
+
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Player</th>
+                    <th scope="col">Tempo</th>
+                    <th scope="col">Nº de minas</th>
+                </tr>
+            </thead>
+            <tbody id="leaderboardBody">
+                <!-- leaderboard rows gonna spawn here -->
+            </tbody>
+        </table>
+    </div>
+
 
 </body>
 
