@@ -160,7 +160,27 @@
                     $(this).prop('disabled', true);
 
                     // count neighbour mines of the current field (above, below, right, left and diagonals)
-                    $(this).text(countNeighbourMines(buttonId[0], buttonId[1]));
+                    let nNeighbourMines = countNeighbourMines(buttonId[0], buttonId[1]);
+
+                    let x = parseInt(buttonId[0]);
+                    let y = parseInt(buttonId[1]);
+
+                    if (nNeighbourMines == 0) {
+                        // call expand function
+                        // above
+                        if (!checkIfValidPosition(x - 1, y)) expandFields(x - 1, y);
+
+                        // below
+                        if (!checkIfValidPosition(x + 1, y)) expandFields(x + 1, y);
+
+                        // right
+                        if (!checkIfValidPosition(x, y + 1)) expandFields(x, y + 1);
+
+                        // left
+                        if (!checkIfValidPosition(x, y - 1)) expandFields(x, y - 1);
+                    } else {
+                        $(this).text(nNeighbourMines);
+                    }
                     $(this).css('font-weight', 'bold');
                 }
             });
@@ -184,6 +204,22 @@
                     // ???
                 }
             });
+        }
+
+        // this function is responsible for expanding the fields when there's no mines around a given field
+        function expandFields(x, y) {
+
+            // check if has mines around
+
+            // check if button is already disabled
+            if (!$(document.getElementById(x + ',' + y)).is('[disabled]')) {
+                console.log("yeiii");
+            } else {
+                console.log("not");
+            }
+
+            
+
         }
 
         // count neighbour mines of a given field 
@@ -355,18 +391,21 @@
                     // check if flag placed correctly
                     if (mines[buttonId[0]][buttonId[1]] == 1) {
                         correctFlags++;
+
+                        // check if won the game
+                        if (correctFlags == currentNMines) {
+                            // disable all fields
+                            $(".field").prop('disabled', true);
+
+                            // show message
+                            $("#ganhou").show();
+                            $("#registarScore").show();
+
+                            // stop timer
+                            stopTimer();
+                        }
                     }
 
-                    // check if won the game
-                    if (correctFlags == currentNMines) {
-                        // disable all fields
-                        $(".field").prop('disabled', true);
-                        // show message
-                        $("#ganhou").show();
-                        $("#registarScore").show();
-                        // stop timer
-                        stopTimer();
-                    }
                 }
 
             } else {
@@ -448,7 +487,7 @@
             generateLeaderboard();
 
             // settings events
-            $('#ezy, #beginner, #intermediate, #expert, #g0d, #reset').click(function () {
+            $('#ezy, #beginner, #intermediate, #expert, #g0d').click(function () {
 
                 switch (this.id) {
                     case "ezy":
@@ -471,17 +510,17 @@
                         generateGame(64, 32, 224, "g0d");
                         break;
 
-                    case "reset":
-                        generateGame(currentXSize, currentYSize, currentNMines, currentMode);
-                        break;
-
                     default:
-                        generateGame(4);
+                        generateGame(8, 8, 10, "beginner");
                         break;
                 }
 
                 // after changing game mode, regenerate a new leaderboard ffor the game mode selected
                 generateLeaderboard();
+            });
+
+            $('#reset').click(function () {
+                generateGame(currentXSize, currentYSize, currentNMines, currentMode);
             });
 
             // registar score
