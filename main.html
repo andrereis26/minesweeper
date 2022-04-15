@@ -244,57 +244,41 @@
         //(above, below, right, left and diagonals) and return the counter
         function countNeighbourMines(x, y) {
 
-            counter = 0;
-
-            // check above
-            x--;
-            if (!checkIfValidPosition(x, y)) if (mines[x][y] == 1) counter++;
-            x++;
+            let counter = 0;
+            let newX = 0;
+            let newY = 0;
 
             // check below
-            x++
-            if (!checkIfValidPosition(x, y)) if (mines[x][y] == 1) counter++;
-            x--;
+            newX = x + 1;
+            if (!checkIfValidPosition(newX, y)) if (mines[newX][y] == 1) counter++;
 
-            // check right
-            y++
-            if (!checkIfValidPosition(x, y)) if (mines[x][y] == 1) counter++;
-            y--;
+            // check above
+            newX = x - 1;
+            if (!checkIfValidPosition(newX, y)) if (mines[newX][y] == 1) counter++;
 
             //check left
-            y--
-            if (!checkIfValidPosition(x, y)) if (mines[x][y] == 1) counter++;
-            y++;
+            newY = y - 1;
+            if (!checkIfValidPosition(x, newY)) if (mines[x][newY] == 1) counter++;
+
+            // check right
+            newY = y + 1;
+            if (!checkIfValidPosition(x, newY)) if (mines[x][newY] == 1) counter++;
 
             // check up right diagonal
-            x--;
-            y++;
-            if (!checkIfValidPosition(x, y)) if (mines[x][y] == 1) counter++;
-            x++;
-            y--;
+            if (!checkIfValidPosition(newX, newY)) if (mines[newX][newY] == 1) counter++;
 
             // check up left diagonal
-            x--;
-            y--;
-            if (!checkIfValidPosition(x, y)) if (mines[x][y] == 1) counter++;
-            x++;
-            y++;
+            newY = y - 1;
+            if (!checkIfValidPosition(newX, newY)) if (mines[newX][newY] == 1) counter++;
 
             // check below right diagonal
-            x++;
-            y++;
-            if (!checkIfValidPosition(x, y)) if (mines[x][y] == 1) counter++;
-            x--;
-            y--;
+            newX = x + 1;
+            newY = y + 1;
+            if (!checkIfValidPosition(newX, newY)) if (mines[newX][newY] == 1) counter++;
 
             // check below left diagonal
-            x++;
-            y--;
-            if (!checkIfValidPosition(x, y)) if (mines[x][y] == 1) counter++;
-            x--;
-            y++;
-
-
+            newY = y - 1;
+            if (!checkIfValidPosition(newX, y)) if (mines[newX][newY] == 1) counter++;
 
             return counter;
         }
