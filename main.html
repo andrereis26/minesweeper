@@ -162,25 +162,16 @@
                     // count neighbour mines of the current field (above, below, right, left and diagonals)
                     let nNeighbourMines = countNeighbourMines(buttonId[0], buttonId[1]);
 
-                    let x = parseInt(buttonId[0]);
-                    let y = parseInt(buttonId[1]);
-
+                    // if has no mines around, expands till fields that have mines around
                     if (nNeighbourMines == 0) {
                         // call expand function
-                        // above
-                        if (!checkIfValidPosition(x - 1, y)) expandFields(x - 1, y);
+                        expandFields(parseInt(buttonId[0]), parseInt(buttonId[1]))
 
-                        // below
-                        if (!checkIfValidPosition(x + 1, y)) expandFields(x + 1, y);
-
-                        // right
-                        if (!checkIfValidPosition(x, y + 1)) expandFields(x, y + 1);
-
-                        // left
-                        if (!checkIfValidPosition(x, y - 1)) expandFields(x, y - 1);
                     } else {
                         $(this).text(nNeighbourMines);
                     }
+
+                    // bold the text
                     $(this).css('font-weight', 'bold');
                 }
             });
@@ -209,16 +200,43 @@
         // this function is responsible for expanding the fields when there's no mines around a given field
         function expandFields(x, y) {
 
-            // check if has mines around
+            // disable button
+            $(document.getElementById(x + ',' + y)).prop('disabled', true);
 
-            // check if button is already disabled
-            if (!$(document.getElementById(x + ',' + y)).is('[disabled]')) {
-                console.log("yeiii");
-            } else {
-                console.log("not");
+            let minesAround = countNeighbourMines(x, y);
+            // check if current field has mines around
+            if (minesAround != 0) {
+                $(document.getElementById(x + ',' + y)).text(minesAround);
+                $(document.getElementById(x + ',' + y)).css('font-weight', 'bold');
+                return;
             }
 
-            
+
+            // check if has mines around
+            // above
+            let newX = x - 1
+            if (!checkIfValidPosition(newX, y) && !$(document.getElementById(newX + ',' + y)).prop('disabled')) {
+                expandFields(newX, y);
+            }
+
+            // below
+            newX = x + 1
+            if (!checkIfValidPosition(newX, y) && !$(document.getElementById(newX + ',' + y)).prop('disabled')) {
+                expandFields(newX, y);
+            }
+
+            // right
+            let newY = y + 1
+            if (!checkIfValidPosition(x, newY) && !$(document.getElementById(x + ',' + newY)).prop('disabled')) {
+                expandFields(x, newY);
+            }
+
+            // left
+            newY = y - 1
+            if (!checkIfValidPosition(x, newY) && !$(document.getElementById(x + ',' + newY)).prop('disabled')) {
+                expandFields(x, newY);
+            }
+
 
         }
 
